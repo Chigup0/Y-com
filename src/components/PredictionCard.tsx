@@ -83,8 +83,8 @@ export function PredictionCard({
       </div>
 
       {hasPlan && (
-        <button onClick={onPlan} className="mt-4 text-sm font-medium text-emerald-300 hover:text-emerald-200">
-          See counter-attack plan →
+        <button onClick={onPlan} className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-sm font-medium text-emerald-200 hover:bg-emerald-400/20">
+          See the counter-attack →
         </button>
       )}
     </article>

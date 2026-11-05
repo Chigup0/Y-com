@@ -1,6 +1,6 @@
 "use client";
 // OWNER: Agent B. Live agent log: every pipeline step with its API, status, detail and credits.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CrustdataApi } from "@/lib/types";
 import type { RunStatus, StepEvent } from "./useSpyRun";
 import { credits } from "./format";
@@ -58,14 +58,21 @@ export function AgentLog({
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [steps.length]);
 
+  // On phones, fold the log to its summary line once the run is done so the results come first.
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    if (status === "running") setCollapsed(false);
+    else if (status === "done" && typeof window !== "undefined" && window.innerWidth < 1024) setCollapsed(true);
+  }, [status]);
+
   const total = steps.reduce((a, s) => a + (s.credits ?? 0), 0);
   const apis = new Set(steps.map((s) => s.api).filter(Boolean));
   const done = steps.filter((s) => s.status === "done").length;
   const secs = startedAt ? Math.round(((finishedAt ?? Date.now()) - startedAt) / 1000) : 0;
 
   return (
-    <section className="flex max-h-[70vh] flex-col rounded-2xl border border-white/10 bg-zinc-900/60">
-      <header className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+    <section className="flex max-h-[45vh] flex-col rounded-2xl border border-white/10 bg-zinc-900/60 lg:max-h-[50vh]">
+      <header className={`flex flex-wrap items-center lg:flex-nowrap justify-between gap-x-3 gap-y-1 px-4 py-3 ${collapsed ? "" : "border-b border-white/10"}`}>
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 rounded-full ${status === "running" ? "animate-pulse bg-emerald-400" : status === "error" ? "bg-rose-400" : "bg-zinc-500"}`} />
           <h2 className="text-sm font-semibold text-zinc-100">Agent log</h2>
@@ -75,10 +82,15 @@ export function AgentLog({
           <span>{apis.size} APIs</span>
           <span className="text-emerald-300">{credits(total)} cr</span>
           {startedAt && <span>{secs}s</span>}
+          {steps.length > 0 && (
+            <button onClick={() => setCollapsed((v) => !v)} className="text-zinc-500 lg:hidden underline-offset-2 hover:text-zinc-200 hover:underline">
+              {collapsed ? "show" : "hide"}
+            </button>
+          )}
         </div>
       </header>
 
-      <ol ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3">
+      <ol ref={listRef} className={`flex-1 space-y-2.5 overflow-y-auto px-4 py-3 ${collapsed ? "hidden" : ""}`}>
         {steps.length === 0 && <li className="text-sm text-zinc-500">Waiting for the first step…</li>}
         {steps.map((s) => (
           <li key={s.id} className="flex gap-2.5">

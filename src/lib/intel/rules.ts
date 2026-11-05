@@ -10,6 +10,18 @@ const STOP = new Set([
   "Businesses", "Companies", "Merchants", "Brands", "Here", "Learn", "See", "Why", "How", "Meanwhile", "Thousands", "Millions",
 ]);
 
+/** True when `url` is on `domain` or one of its subdomains. */
+function onDomain(url: string, domain: string | null | undefined): boolean {
+  if (!domain) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    const d = domain.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+    return host === d || host.endsWith("." + d);
+  } catch {
+    return false;
+  }
+}
+
 function sentences(text: string): string[] {
   return text
     .replace(/\s+/g, " ")
@@ -25,7 +37,8 @@ export function ruleCustomers(
   const comp = competitor.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // Optional appositive: "Kitekart, a D2C grocery brand, switched to NovaPay".
   const reUses = new RegExp(`${NAME}(?:,[^,]{1,60},)?\\s+${CUSTOMER_VERBS}\\s+(?:the\\s+)?${comp}`, "g");
-  const reCaseStudy = new RegExp(String.raw`(?:case study|customer story|success story)\s*[:|–-]\s*${NAME}`, "gi");
+  // A real colon or spaced dash only, never "|" (page-title separators like "PayU Case Study | AWS").
+  const reCaseStudy = new RegExp(String.raw`(?:case study|customer story|success story)(?::|\s+[–-])\s+${NAME}`, "gi");
   const reHow = new RegExp(String.raw`^How\s+${NAME}\s+(?:uses|used|scaled|cut|grew|built|moved|saved|reduced)`);
   const out: CustomerMention[] = [];
   const seen = new Set<string>([competitor.name.toLowerCase()]);
@@ -41,7 +54,8 @@ export function ruleCustomers(
     out.push({ name, domain: null, sourceUrl: url, quote: quote.length > 240 ? quote.slice(0, 237) + "…" : quote });
   };
 
-  for (const p of pages) {
+  // Only the competitor's own site: third-party pages (e.g. an AWS case study about PayU) describe the reverse relationship.
+  for (const p of pages.filter((pg) => onDomain(pg.url, competitor.domain))) {
     const m = p.title ? reHow.exec(p.title) : null;
     if (m && p.title) add(m[1], p.url, p.title);
     for (const s of sentences(p.text)) {

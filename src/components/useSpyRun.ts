@@ -108,7 +108,8 @@ export function useSpyRun() {
       const res = await fetch(`/api/spy${mock ? "?mock=1" : ""}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(req),
+        // Deployed site with SPY_ACCESS_CODE: open it as /?key=<code> to run on real data.
+        body: JSON.stringify({ ...req, accessCode: new URLSearchParams(window.location.search).get("key") ?? undefined }),
         signal: ac.signal,
       });
       if (!res.ok || !res.body) throw new Error(`Server returned ${res.status}`);

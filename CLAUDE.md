@@ -105,14 +105,36 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       HubSpot/Slack/Salesforce as "PayU customers" (from a generic blog post). Live demo set now: only verified accounts.
 - [x] A: `SPY_ACCESS_CODE` env: when set, `/api/spy` serves demo data unless the request carries the code
       (`body.accessCode`, header `x-spy-key`, or `?key=` on the API URL). `SpyRequest.accessCode` added (additive).
-- [ ] M4: deploy to Vercel (user's account), final UI polish (B)
+- [x] B: **precision check on the real demo run** (Razorpay vs Cashfree, PayU, Juspay; run on B's machine, which had no
+      cache, so it cost **67.1 credits**, not ~25; the re-run was 1.8 s and 0.69 credits). Case-study path: 1 account
+      before the fix, "Your Cookie Rookie" (from the AWS case study), wrong. `ruleCustomers` now only reads pages on
+      the competitor's own domain and ignores "Case Study |" title separators; on the cached pages it returns 0
+      accounts (PayU's own success-stories page is just a list of post titles). Of the 12 pages fetched, 11 were not on a
+      competitor's own site. Job-mention path, after the fix: Lokal, Zoomies, muun home (Cashfree) and hoichoi (Juspay)
+      are real usage; **HV InfoTech and E Software Solutions are web agencies listing gateways as skills** (see Requests for A).
+- [x] B: demo polish. Plan accounts are stacked cards (no sideways scroll at 375 px) sorted biggest first, so
+      **Lokal leads Cashfree's counter-attack**; "Jump to" links in the sidebar (top prediction, each counter-attack);
+      stronger "See the counter-attack" button; the agent log folds after the run on phones and is shorter on desktop
+      so the jump links stay visible; empty state when a competitor has no verified customers.
+      Done the Requests-for-B item: `useSpyRun` sends `?key=` from the page URL as `accessCode`.
+- [ ] M4: deploy to Vercel (user's account)
 
 ## Requests for B
 
-- **useSpyRun:** read `key` from the page URL (`new URLSearchParams(location.search).get("key")`) and send it as
+- ~~**useSpyRun:** read `key` from the page URL~~ (done by B) (`new URLSearchParams(location.search).get("key")`) and send it as
   `accessCode` in the `/api/spy` request body. Without this, the deployed site with `SPY_ACCESS_CODE` set can only
   show demo data, even for us.
 
 ## Requests for A
 
-- (none yet)
+- **Job-mention precision:** HV InfoTech ("Payment gateway integrations popular in India (Razorpay, PayU, Cashfree)")
+  and E Software Solutions ("Experience with payment gateway integration such as Razorpay, Stripe, or PayU") are web
+  agencies whose job ads list gateways as *skills*, not gateways they use. They show up under Cashfree and PayU. Suggest
+  dropping mentions that sit next to "experience with", "integration(s) such as/popular", "knowledge of", or that list
+  3+ gateways including Razorpay itself (a skills list), and/or requiring a usage verb (settlement, reconciliation,
+  routing, "our gateway").
+- **Case-study search:** 11 of 12 Web Fetch pages were generic blogs ("customer case study examples"), news, or
+  google.com/goto redirects. A `site:<competitor domain>` query (or a filter before Web Fetch) would save ~6 credits
+  per run and not change results.
+- **Credit estimate:** the README/ROADMAP say ~25 credits per demo run; a cold run here was 67.1
+  (customers 21.4, hires 18.2, news 9, enrich 9, resolve 8). Worth updating the number people see.

@@ -2,7 +2,7 @@
 // OWNER: Agent B. One competitor's dossier: firmographics, hiring charts, recent hires, notable jobs.
 import { useState } from "react";
 import type { CompetitorDossier } from "@/lib/types";
-import { ACCENTS, compactNum, compactUsd, evidenceDomId, pct, shortDate } from "./format";
+import { ACCENTS, byHeadcountDesc, compactNum, compactUsd, evidenceDomId, pct, shortDate } from "./format";
 import { HiringChart } from "./HiringChart";
 import { ProofQuote } from "./ProofQuote";
 
@@ -187,13 +187,16 @@ export function CompetitorCard({
         </div>
       )}
 
+      {dossier.targets && dossier.targets.length === 0 && (
+        <p className="mt-5 text-xs text-zinc-500">No verified customers of {c.name} found in job posts or on its own case-study pages.</p>
+      )}
       {dossier.targets && dossier.targets.length > 0 && (
-        <div className="mt-5">
+        <div id={`customers-${c.crustdataCompanyId}`} className="mt-5 scroll-mt-6">
           <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
             Their customers <span className="text-zinc-600">({dossier.targets.length}) · pitch these</span>
           </div>
           <ul className="space-y-3">
-            {dossier.targets.map((t) => (
+            {byHeadcountDesc(dossier.targets).map((t) => (
               <li key={t.company.crustdataCompanyId} className="text-sm">
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span className="font-medium text-zinc-100">{t.company.name}</span>

@@ -2,7 +2,7 @@
 // OWNER: Agent B. Counter-attack plan: actions, target accounts with buyers, email drafts with copy.
 import { useState } from "react";
 import type { CounterAttackPlan, EmailDraft, LaunchPrediction } from "@/lib/types";
-import { ACCENTS, compactNum } from "./format";
+import { ACCENTS, byHeadcountDesc, compactNum } from "./format";
 import { CopyButton } from "./CopyButton";
 import { ProofQuote } from "./ProofQuote";
 
@@ -89,51 +89,38 @@ export function PlanSection({
         {plan.targets.length === 0 ? (
           <p className="text-sm text-zinc-500">No customer accounts found for this competitor yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full min-w-[520px] text-left text-sm">
-              <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wider text-zinc-500">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Account</th>
-                  <th className="px-3 py-2 font-medium">Why now</th>
-                  <th className="px-3 py-2 font-medium">Buyer</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {plan.targets.map((t) => (
-                  <tr key={t.company.crustdataCompanyId} className="align-top">
-                    <td className="px-3 py-2.5">
-                      <div className="font-medium text-zinc-100">{t.company.name}</div>
-                      <div className="text-xs text-zinc-500">
-                        {[t.company.domain, t.company.headcount ? `${compactNum(t.company.headcount)} people` : null].filter(Boolean).join(" · ")}
+          // Stacked cards instead of a table: no sideways scrolling at phone width.
+          <ul className="divide-y divide-white/5 rounded-xl border border-white/10">
+            {byHeadcountDesc(plan.targets).map((t) => (
+              <li key={t.company.crustdataCompanyId} id={`target-${plan.predictionId}-${t.company.crustdataCompanyId}`} className="scroll-mt-24 px-3 py-3 text-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="font-medium text-zinc-100">{t.company.name}</div>
+                    <div className="text-xs text-zinc-500">
+                      {[t.company.domain, t.company.headcount ? `${compactNum(t.company.headcount)} people` : null].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                  <div className="shrink-0 sm:text-right">
+                    {t.buyers.length === 0 && <span className="text-xs text-zinc-500">Buyer not found</span>}
+                    {t.buyers.slice(0, 2).map((b) => (
+                      <div key={b.personId} className="text-zinc-200">
+                        {b.profileUrl ? (
+                          <a href={b.profileUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                            {b.name}
+                          </a>
+                        ) : (
+                          b.name
+                        )}
+                        {b.title && <span className="text-xs text-zinc-500"> · {b.title}</span>}
                       </div>
-                      <a href={t.sourceUrl} target="_blank" rel="noreferrer" className="text-[11px] text-zinc-500 hover:text-zinc-300">
-                        uses {t.competitorName} ↗
-                      </a>
-                    </td>
-                    <td className="px-3 py-2.5 text-zinc-300">
-                      {t.whyNow}
-                      <ProofQuote target={t} />
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {t.buyers.length === 0 && <span className="text-zinc-500">Not found</span>}
-                      {t.buyers.map((b) => (
-                        <div key={b.personId} className="text-zinc-200">
-                          {b.profileUrl ? (
-                            <a href={b.profileUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                              {b.name}
-                            </a>
-                          ) : (
-                            b.name
-                          )}
-                          {b.title && <div className="text-xs text-zinc-500">{b.title}</div>}
-                        </div>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-1.5 text-zinc-300">{t.whyNow}</div>
+                <ProofQuote target={t} />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 

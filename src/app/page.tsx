@@ -162,6 +162,27 @@ export default function Home() {
                       </button>
                     ))}
                   </div>
+                  {(state.predictions.length > 0 || state.plans.length > 0) && (
+                    <div className="mt-3 border-t border-white/10 pt-3">
+                      <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">Jump to</div>
+                      <div className="flex flex-wrap gap-1.5 lg:flex-col lg:items-stretch">
+                        {state.predictions[0] && (
+                          <button onClick={() => scrollTo(`prediction-${state.predictions[0].id}`)} className="rounded-md border border-white/10 px-2 py-1 text-left text-xs text-zinc-300 hover:bg-white/5">
+                            ★ Top prediction · {state.predictions[0].competitorName}
+                          </button>
+                        )}
+                        {state.plans.map((plan) => {
+                          const pred = state.predictions.find((p) => p.id === plan.predictionId);
+                          return (
+                            <button key={plan.predictionId} onClick={() => scrollTo(`plan-${plan.predictionId}`)} className="rounded-md border border-emerald-400/20 px-2 py-1 text-left text-xs text-emerald-200 hover:bg-emerald-400/10">
+                              ⚔ Counter-attack · {pred?.competitorName ?? plan.predictionId}
+                              {plan.targets.length > 0 && <span className="text-emerald-400/60"> ({plan.targets.length} accounts)</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {state.status === "done" && (
                     <div className="mt-3 border-t border-white/10 pt-3 text-xs text-zinc-500">
                       {state.predictions.length} predictions · {state.plans.length} plans · {credits} credits

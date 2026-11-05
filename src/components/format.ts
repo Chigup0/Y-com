@@ -33,6 +33,10 @@ export const ACCENTS = [
   { text: "text-amber-300", bg: "bg-amber-400", fill: "#fbbf24", ring: "ring-amber-400/40", soft: "bg-amber-400/10" },
 ] as const;
 
+/** Biggest accounts first: they are the ones worth pitching (and the strongest demo moment). */
+export const byHeadcountDesc = <T extends { company: { headcount?: number | null } }>(xs: T[]) =>
+  [...xs].sort((a, b) => (b.company.headcount ?? 0) - (a.company.headcount ?? 0));
+
 export const evidenceKey = (kind: string, ref: string | number) => `${kind}:${ref}`;
 export const evidenceDomId = (kind: string, ref: string | number) =>
   `ev-${kind}-${String(ref).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
