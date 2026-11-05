@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shell Company Detector",
-  description: "Score companies for shell-company red flags using Crustdata.",
+  title: "Secret Product Spy",
+  description: "Predict a competitor's next launch from who it is hiring. Powered by Crustdata.",
 };
 
 export default function RootLayout({

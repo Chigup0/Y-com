@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Crustdata response cache (saves credits)
+.cache/
+
 # vercel
 .vercel
 
