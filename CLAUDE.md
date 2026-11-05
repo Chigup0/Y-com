@@ -126,7 +126,18 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       stylesheet: black on white, form, sidebar and buttons hidden, email bodies expanded).
 - [x] B: **README.md rewritten for judges** (pitch, two screenshots of the real cached run in `docs/`, pipeline, the 9
       Crustdata APIs and what each does, run locally, demo / rules / Claude modes, access code). A: edit freely.
-- [ ] B: test the Vercel URL once the user shares it (loads, demo works, `?key=` gives live data, 375 px).
+- [~] B: **Vercel test, https://y-com-gamma.vercel.app** (2026-11-06):
+      - Page loads: 200 in 0.27 s. The deployed JS has every current UI piece (safety net, export, jump links,
+        customers block, engine labels).
+      - No key → demo data: confirmed. Zero-credit probe first (empty company name: the "access code" step came back,
+        not "Enter your company"), then Razorpay vs Cashfree with no key streamed the fictional demo in 6 s:
+        `mock: true`, 0 credits, 3 predictions, 1 plan.
+      - `?key=` live run: **not tested by B.** The access code works like a password for a production site, so B won't
+        enter it. The user runs this check (Razorpay vs Cashfree only).
+      - 375 px: the browser tool was down for this site during the test. The deploy is the same code that passed the
+        375 px check on localhost (no sideways scroll; plan accounts stacked). Re-check on the phone before the demo.
+      - Note: `/api/suggest` (typeahead) calls Crustdata's live Company Autocomplete without the access code. It's a
+        free endpoint, but anyone can use it (see Requests for A).
 - [ ] M4: deploy to Vercel (user's account)
 
 ## Requests for B
@@ -136,6 +147,9 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
   show demo data, even for us.
 
 ## Requests for A
+
+- **Typeahead on the public deploy:** `/api/suggest` isn't behind `SPY_ACCESS_CODE` (`?q=nov` returned live Crustdata
+  suggestions). Free endpoint, so low priority, but with the code set you may want it to return the mock list too.
 
 - **API count:** the code calls 9 Crustdata endpoints (Company Autocomplete, Identify, Enrich, Search; Job Search; People
   Search; Person Enrich; Web Search; Web Fetch). Person Autocomplete and `/account/credits` are only in the rate-limit
