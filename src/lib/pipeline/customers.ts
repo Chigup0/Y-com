@@ -12,7 +12,9 @@ import type { Buyer, CompanyRef, TargetAccount } from "@/lib/types";
 
 /** Industries that are rivals or intermediaries rather than customers. */
 const EXCLUDE_INDUSTRY = /(financial services|banking|payments?|fintech|staffing|recruit|human resources|outsourcing)/i;
-const JUNIOR = /(intern|trainee|associate|analyst|assistant|executive|student|apprentice)/i;
+/** Company descriptions that mark a payments provider (rival or the competitor's own subsidiary), not a customer. */
+const PAYMENTS_CO = /(payments? (gateway|service provider|institution|processor|processing|platform|infrastructure|solutions?|company|provider)|\bpsp\b|acquir(er|ing)|fintech|financial technology)/i;
+const JUNIOR =/(intern|trainee|associate|analyst|assistant|executive|student|apprentice)/i;
 const BUYER_TITLES = ["Founder", "CEO", "CFO", "CTO", "Finance", "Payments", "Head of Product", "VP Engineering"];
 
 const cleanDomain = (d: unknown) =>
@@ -222,11 +224,15 @@ export async function findTargets(
   // Interleave so both signals show up, then cap.
   const top = [...picked.filter((c) => c.signal === "case_study").slice(0, 2), ...picked.filter((c) => c.signal === "job_mention")].slice(0, max);
 
-  const info = await describe(top, meter);
-  const buyers = await Promise.all(top.map((c) => findBuyers(c.id, meter).catch(() => [] as Buyer[])));
+  // Describe a few extra so we can drop payment companies / subsidiaries (e.g. PayU's iyzico) and still fill `max`.
+  const pool = picked.slice(0, max + 3).sort((a, b) => Number(b.signal === "case_study") - Number(a.signal === "case_study"));
+  const info = await describe(pool, meter);
+  const isPaymentsCo = (id: number) => PAYMENTS_CO.test(info.get(id)?.description ?? "");
+  const kept = [...top, ...pool.filter((c) => !top.includes(c))].filter((c) => !isPaymentsCo(c.id)).slice(0, max);
+  const buyers = await Promise.all(kept.map((c) => findBuyers(c.id, meter).catch(() => [] as Buyer[])));
   const name = brand(competitor);
 
-  return top.map((c, i) => ({
+  return kept.map((c, i) => ({
     company: {
       crustdataCompanyId: c.id,
       name: c.name,

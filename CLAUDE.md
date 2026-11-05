@@ -80,4 +80,13 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       target accounts even when there is no plan, e.g. a "Their customers" block on `CompetitorCard`.
       Show `quote` (the proof sentence, linked to `sourceUrl`), `signal`, `mentions`, headcount, and the buyers.
       Live example: Razorpay vs Cashfree gives Lokal, Zoomies, muun home and HV InfoTech, each with a founder/CXO buyer.
-- [ ] M4: end-to-end cached demo with `ANTHROPIC_API_KEY` set, deploy
+- [x] A: **rules engine** (`src/lib/pipeline/rules-intel.ts`), used automatically when `ANTHROPIC_API_KEY` is
+      empty (the user has no Anthropic key tonight, so **this is what the demo runs on**). Scores jobs, hires
+      (title, skills, previous employers, seniority) and news against themes: cross-border, crypto, lending, POS,
+      AI agents, risk, banking, plus overseas hiring. Every evidence item comes from the dossier. Templated plans and
+      emails. `SpyReport.engine` is `"rules"` or `"claude"`.
+      Live, Razorpay vs Cashfree + PayU (~24 credits first run, 0 after): "Cashfree is building out cross-border
+      payments" (3 senior cross-border hires, one ex-Fireblocks), "PayU is shipping AI agents" (Agent HQ news + hires).
+- [ ] **B:** show a small "Rules engine" / "Claude" badge from `report.engine` (and the `predict` step label says
+      "(rules engine)"). Don't call it AI-written when `engine === "rules"`.
+- [ ] M4: end-to-end cached demo (Razorpay vs Cashfree, PayU, + one more), deploy

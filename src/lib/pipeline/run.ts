@@ -3,6 +3,7 @@ import { CreditMeter } from "@/lib/crustdata/client";
 import { draftCounterAttack, predictLaunches } from "@/lib/intel";
 import type { CompanyRef, CompetitorDossier, CounterAttackPlan, CrustdataApi, RunEvent, SpyReport, SpyRequest } from "@/lib/types";
 import { findTargets } from "./customers";
+import { rulesCounterAttack, rulesPredict } from "./rules-intel";
 import { collectHires, enrichKeyHires } from "./hires";
 import { collectJobs } from "./jobs";
 import { collectNews } from "./news";
@@ -15,6 +16,8 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
   const total = new CreditMeter();
   const lookback = req.lookbackDays ?? 90;
+  // No Anthropic key → rules engine (same output types) instead of Agent B's Claude intel.
+  const useClaude = Boolean(process.env.ANTHROPIC_API_KEY);
 
   /** Runs one step: emits running → done/error with the credits it spent. Returns null on failure. */
   async function step<T>(
@@ -94,9 +97,9 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
   const [predictions] = await Promise.all([
     (async () => {
       const r =
-        (await step("predict", "Predicting each competitor's next launch", "claude", async () => {
-          const all = await predictLaunches(you, dossiers);
-          return all.filter((p) => knownIds.has(p.competitorId)); // drops fixture output from the stub
+        (await step("predict", `Predicting each competitor's next launch${useClaude ? "" : " (rules engine)"}`, "claude", async () => {
+          const all = useClaude ? await predictLaunches(you, dossiers) : rulesPredict(you, dossiers);
+          return all.filter((p) => knownIds.has(p.competitorId)); // never show fixture predictions on a real run
         }, (r) => `${r.length} predictions`)) ?? [];
       for (const p of r) emit({ type: "prediction", prediction: p });
       return r;
@@ -121,7 +124,7 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
     if (!top) continue;
     const targets = d.targets ?? [];
     const plan = await step(`plan:${slug(d.company.name)}`, `Drafting the counter-attack on ${d.company.name}`, "claude", async () => {
-      const { actions, emails } = await draftCounterAttack(you, top, targets);
+      const { actions, emails } = useClaude ? await draftCounterAttack(you, top, targets) : rulesCounterAttack(you, top, targets);
       return { predictionId: top.id, actions, targets, emails } satisfies CounterAttackPlan;
     }, (p) => `${p.actions.length} actions · ${p.emails.length} emails`);
     if (plan) {
@@ -139,5 +142,6 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
     generatedAt: new Date().toISOString(),
     creditsUsed: total.total,
     mock: false,
+    engine: useClaude ? "claude" : "rules",
   };
 }

@@ -195,6 +195,8 @@ export interface SpyReport {
   creditsUsed: number;
   /** True when built from fixture data. The UI must show a "Demo data" badge. */
   mock: boolean;
+  /** Who wrote predictions/plans: Claude (ANTHROPIC_API_KEY set) or the rules engine (no key). */
+  engine?: "claude" | "rules";
 }
 
 // ---------- Streaming protocol: POST /api/spy → NDJSON, one RunEvent per line ----------
