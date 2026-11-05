@@ -1,10 +1,14 @@
 "use client";
 // OWNER: Agent B. Input form: you + up to 3 competitors + lookback + demo toggle.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SpyRequest } from "@/lib/types";
 import { CompanyInput } from "./CompanyInput";
 
+// Live by default with the cached real demo set; ?demo=1 (or ticking the box) switches to fictional demo data.
+const LIVE = { you: "Razorpay", competitors: ["Cashfree", "PayU", "Juspay"] };
 const DEMO = { you: "Acme Payments", competitors: ["NovaPay", "Zentra", "PayLoom"] };
+const same = (a: { you: string; competitors: string[] }, b: { you: string; competitors: string[] }) =>
+  a.you === b.you && a.competitors.join("|") === b.competitors.join("|");
 
 export function SpyForm({
   running,
@@ -15,10 +19,27 @@ export function SpyForm({
   onRun: (req: SpyRequest, mock: boolean) => void;
   onStop: () => void;
 }) {
-  const [you, setYou] = useState(DEMO.you);
-  const [competitors, setCompetitors] = useState<string[]>(DEMO.competitors);
+  const [you, setYou] = useState(LIVE.you);
+  const [competitors, setCompetitors] = useState<string[]>(LIVE.competitors);
   const [lookback, setLookback] = useState(90);
-  const [mock, setMock] = useState(true);
+  const [mock, setMock] = useState(false);
+
+  // Read ?demo=1 after mount (not during render) so server and client HTML match.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") toggleDemo(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Switch modes; swap the pre-filled companies too, unless the user has typed their own. */
+  function toggleDemo(on: boolean) {
+    setMock(on);
+    const current = { you, competitors };
+    const target = on ? DEMO : LIVE;
+    if (same(current, on ? LIVE : DEMO)) {
+      setYou(target.you);
+      setCompetitors(target.competitors);
+    }
+  }
 
   const filled = competitors.map((c) => c.trim()).filter(Boolean);
   // With no competitors the real pipeline auto-picks rivals from Crustdata's competitor data.
@@ -79,11 +100,12 @@ export function SpyForm({
         </label>
 
         <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
-          <input type="checkbox" checked={mock} onChange={(e) => setMock(e.target.checked)} className="h-4 w-4 accent-emerald-400" />
+          <input type="checkbox" checked={mock} onChange={(e) => toggleDemo(e.target.checked)} className="h-4 w-4 accent-emerald-400" />
           Demo data <span className="text-zinc-500">(fictional, 0 credits)</span>
         </label>
 
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex items-center gap-3">
+          {!mock && <span className="text-xs text-zinc-500">Live Crustdata data · uses credits</span>}
           {running && (
             <button type="button" onClick={onStop} className="rounded-lg border border-white/15 px-4 py-2 text-sm text-zinc-300 hover:bg-white/5">
               Stop
