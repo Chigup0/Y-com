@@ -138,6 +138,10 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
         375 px check on localhost (no sideways scroll; plan accounts stacked). Re-check on the phone before the demo.
       - Note: `/api/suggest` (typeahead) calls Crustdata's live Company Autocomplete without the access code. It's a
         free endpoint, but anyone can use it (see Requests for A).
+- [x] B: **live data by default** (commit 6f42f32). The form opens with Demo data unticked and Razorpay vs Cashfree, PayU,
+      Juspay pre-filled; "Live Crustdata data · uses credits" shows next to Run. `?demo=1` or ticking the box starts in
+      demo mode and swaps in the fictional companies (unless the user typed their own). `?key=` / `accessCode` and the
+      safety net are unchanged. Checked locally; Run was not clicked on the live site (the user does the first live run).
 - [ ] M4: deploy to Vercel (user's account)
 
 ## Requests for B
