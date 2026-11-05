@@ -60,9 +60,11 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
     Hires carry `previousCompanies` + `skills`, which are the strongest signals (e.g. Cashfree's new
     "Senior Director - Cross Border payments" is ex-Fireblocks). `news[0].excerpt` has article text.
   - The predict step filters out predictions whose `competitorId` isn't in the dossiers, so the stub's fixture output is dropped on real runs.
-- [ ] M1-B: UI on fixture: input form, live agent log, competitor cards, hiring charts
-- [ ] M2-B: `predictLaunches` with Claude
+- [x] M1-B: UI on fixture: input form, live agent log, competitor cards, hiring charts
+- [x] M2-B: `predictLaunches` with Claude (one call per competitor in parallel; evidence refs validated
+      against the dossier, predictions with <2 valid refs dropped; falls back to fixture without `ANTHROPIC_API_KEY`)
 - [ ] M2-A: wire predictions into the route
 - [ ] M3-A: customer discovery + buyers
-- [ ] M3-B: `extractCustomers`, `draftCounterAttack`, plan + email UI
+- [x] M3-B: `extractCustomers`, `draftCounterAttack`, plan + email UI (customer names must appear verbatim on
+      the cited page; ≤8 emails, buyers picked round-robin across targets). Not yet run against the live API.
 - [ ] M4: end-to-end cached demo, deploy
