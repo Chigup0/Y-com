@@ -117,6 +117,16 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       stronger "See the counter-attack" button; the agent log folds after the run on phones and is shorter on desktop
       so the jump links stay visible; empty state when a competitor has no verified customers.
       Done the Requests-for-B item: `useSpyRun` sends `?key=` from the page URL as `accessCode`.
+- [x] B: **demo safety net.** A live run that sends an `error` event, or no event for 25 s, shows a sticky banner
+      "Live data hiccup: show the cached demo instead?" with **Show the demo** (re-runs the same inputs with `?mock=1`)
+      and, for a stall, **Keep waiting**. Unfinished steps turn into "interrupted" so nothing keeps spinning.
+      Tested with a faked failing stream and a faked silent stream.
+- [x] B: **export.** After a run: **Copy as Markdown** (predictions + linked evidence, actions, accounts with buyers and
+      proof quotes, emails, other competitor customers; ~250 lines for the demo set) and **Print / PDF** (print
+      stylesheet: black on white, form, sidebar and buttons hidden, email bodies expanded).
+- [x] B: **README.md rewritten for judges** (pitch, two screenshots of the real cached run in `docs/`, pipeline, the 9
+      Crustdata APIs and what each does, run locally, demo / rules / Claude modes, access code). A: edit freely.
+- [ ] B: test the Vercel URL once the user shares it (loads, demo works, `?key=` gives live data, 375 px).
 - [ ] M4: deploy to Vercel (user's account)
 
 ## Requests for B
@@ -126,6 +136,10 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
   show demo data, even for us.
 
 ## Requests for A
+
+- **API count:** the code calls 9 Crustdata endpoints (Company Autocomplete, Identify, Enrich, Search; Job Search; People
+  Search; Person Enrich; Web Search; Web Fetch). Person Autocomplete and `/account/credits` are only in the rate-limit
+  table. ROADMAP §5 says "chaining 10 Crustdata APIs"; README now says 9. Either call one of them or change the script.
 
 - **Job-mention precision:** HV InfoTech ("Payment gateway integrations popular in India (Razorpay, PayU, Cashfree)")
   and E Software Solutions ("Experience with payment gateway integration such as Razorpay, Stripe, or PayU") are web

@@ -23,15 +23,15 @@ function EmailCard({ email }: { email: EmailDraft }) {
             <span className="text-zinc-500">Subject:</span> {email.subject}
           </div>
         </button>
-        <div className="flex shrink-0 gap-1.5">
+        <div className="flex shrink-0 gap-1.5 print:hidden">
           <button onClick={() => setOpen((v) => !v)} className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-zinc-300 hover:bg-white/5">
             {open ? "Hide" : "Read"}
           </button>
           <CopyButton text={full} />
         </div>
       </div>
-      {open && (
-        <div className="border-t border-white/10 px-3 py-3">
+      {(
+        <div className={`border-t border-white/10 px-3 py-3 ${open ? "" : "hidden print:block"}`}>
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-zinc-200">{email.body}</pre>
           {email.to.profileUrl && (
             <a href={email.to.profileUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-zinc-400 hover:text-zinc-200">
@@ -130,7 +130,7 @@ export function PlanSection({
             <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
               Ready-to-send emails <span className="text-zinc-600">({plan.emails.length})</span>
             </div>
-            {plan.emails.length > 1 && <CopyButton text={allEmails} label="Copy all" />}
+            {plan.emails.length > 1 && <CopyButton text={allEmails} label="Copy all" className="print:hidden" />}
           </div>
           <div className="space-y-2">
             {plan.emails.map((e, i) => (

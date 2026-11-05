@@ -23,3 +23,50 @@ body {
 .recharts-wrapper *:focus {
   outline: none;
 }
+
+/* Print / Save as PDF: black on white, no app chrome (form, sidebar and buttons carry print:hidden). */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  body * {
+    color: #111 !important;
+    background: transparent !important;
+    border-color: #d4d4d8 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  /* Single column: the sidebar is hidden, let the content take the page. */
+  main .grid {
+    display: block !important;
+  }
+  /* Keep short blocks whole; long competitor dossiers may break across pages. */
+  [id^="prediction-"],
+  li,
+  blockquote {
+    break-inside: avoid;
+  }
+  a {
+    text-decoration: underline;
+  }
+  /* Keep chart bars visible. */
+  .recharts-wrapper,
+  .recharts-wrapper * {
+    background: transparent !important;
+  }
+  mark {
+    font-weight: 700;
+  }
+}

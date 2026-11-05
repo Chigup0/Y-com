@@ -7,7 +7,9 @@ import { CompetitorCard } from "@/components/CompetitorCard";
 import { PlanSection } from "@/components/PlanSection";
 import { PredictionCard } from "@/components/PredictionCard";
 import { SpyForm } from "@/components/SpyForm";
-import { useSpyRun } from "@/components/useSpyRun";
+import { STALL_MS, useSpyRun } from "@/components/useSpyRun";
+import { CopyButton } from "@/components/CopyButton";
+import { reportToMarkdown } from "@/components/exportMarkdown";
 import { ACCENTS, evidenceDomId } from "@/components/format";
 
 function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: string }) {
@@ -39,6 +41,27 @@ const HOW = [
 
 export default function Home() {
   const { state, run, stop } = useSpyRun();
+  // "Keep waiting" hides the stall banner until the stream goes quiet again.
+  const [netDismissedAt, setNetDismissedAt] = useState<number | null>(null);
+  const liveFailed = !state.mockRequested && state.status === "error" && state.error !== "Stopped.";
+  const liveStalled = !state.mockRequested && state.status === "running" && state.stalled && netDismissedAt !== state.lastEventAt;
+  const showSafetyNet = liveFailed || liveStalled;
+
+  const markdown = useMemo(
+    () =>
+      state.status === "done"
+        ? reportToMarkdown({
+            you: state.you,
+            dossiers: state.dossiers,
+            predictions: state.predictions,
+            plans: state.plans,
+            engine: state.report?.engine ?? null,
+            mock: state.report?.mock ?? state.mockRequested,
+            creditsUsed: state.report?.creditsUsed ?? 0,
+          })
+        : "",
+    [state.status, state.you, state.dossiers, state.predictions, state.plans, state.report, state.mockRequested],
+  );
   const [highlight, setHighlight] = useState<string | null>(null);
 
   const running = state.status === "running";
@@ -84,7 +107,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="pointer-events-none fixed inset-x-0 top-0 h-80 bg-[radial-gradient(ellipse_at_top,rgba(52,211,153,0.10),transparent_70%)]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 h-80 print:hidden bg-[radial-gradient(ellipse_at_top,rgba(52,211,153,0.10),transparent_70%)]" />
       <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -118,12 +141,39 @@ export default function Home() {
           </div>
         </header>
 
-        <SpyForm running={running} onRun={run} onStop={stop} />
+        <div className="print:hidden">
+          <SpyForm running={running} onRun={run} onStop={stop} />
+        </div>
 
-        {state.error && (
-          <div className="mt-4 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
-            <span className="font-semibold">Run failed:</span> {state.error}
+        {/* Demo safety net: a failed or silent live run offers the demo data instead of a blank or spinning screen. */}
+        {showSafetyNet && state.request ? (
+          <div role="alert" className="sticky top-2 z-30 mt-4 flex flex-col gap-3 rounded-xl border border-amber-400/40 bg-zinc-900/95 px-4 py-3 text-sm shadow-lg shadow-black/40 backdrop-blur sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-amber-200">Live data hiccup: show the cached demo instead?</div>
+              <div className="mt-0.5 truncate text-xs text-zinc-400">
+                {state.stalled ? `No update from the live pipeline for ${Math.round(STALL_MS / 1000)}s.` : state.error}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              {state.stalled && state.status === "running" && (
+                <button onClick={() => setNetDismissedAt(state.lastEventAt)} className="text-xs text-zinc-400 hover:text-zinc-200">
+                  Keep waiting
+                </button>
+              )}
+              <button
+                onClick={() => state.request && run(state.request, true)}
+                className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-200"
+              >
+                Show the demo
+              </button>
+            </div>
           </div>
+        ) : (
+          state.error && (
+            <div className="mt-4 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+              <span className="font-semibold">Run failed:</span> {state.error}
+            </div>
+          )
         )}
 
         {state.status === "idle" ? (
@@ -138,7 +188,7 @@ export default function Home() {
           </section>
         ) : (
           <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-            <aside className="lg:sticky lg:top-6 lg:self-start">
+            <aside className="lg:sticky lg:top-6 lg:self-start print:hidden">
               <AgentLog steps={state.steps} status={state.status} startedAt={state.startedAt} finishedAt={state.finishedAt} />
               {state.companies.length > 0 && (
                 <nav className="mt-4 rounded-2xl border border-white/10 bg-zinc-900/60 p-4 text-sm">
@@ -193,6 +243,20 @@ export default function Home() {
             </aside>
 
             <div className="min-w-0 space-y-10">
+              {state.status === "done" && (state.predictions.length > 0 || state.dossiers.length > 0) && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-zinc-900/60 px-4 py-3 print:hidden">
+                  <div className="text-sm text-zinc-300">
+                    <span className="font-semibold text-zinc-100">Take it to your sales team.</span>{" "}
+                    <span className="text-zinc-400">Predictions, evidence, accounts, proof quotes and emails.</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <CopyButton text={markdown} label="Copy as Markdown" className="!px-3 !py-1.5 !text-sm" />
+                    <button onClick={() => window.print()} className="rounded-md border border-white/15 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-white/5">
+                      Print / PDF
+                    </button>
+                  </div>
+                </div>
+              )}
               <section>
                 <SectionTitle sub={state.predictions.length ? "sorted by confidence" : undefined}>Predicted launches</SectionTitle>
                 <div className="space-y-4">

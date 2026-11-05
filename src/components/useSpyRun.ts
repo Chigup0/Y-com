@@ -1,6 +1,6 @@
 "use client";
 // OWNER: Agent B. Streams POST /api/spy (NDJSON RunEvents) into UI state.
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CompanyRef,
   CompetitorDossier,
@@ -13,6 +13,9 @@ import type {
 
 export type StepEvent = Extract<RunEvent, { type: "step" }>;
 export type RunStatus = "idle" | "running" | "done" | "error";
+
+/** No event for this long during a live run counts as a stall (offer the cached demo). */
+export const STALL_MS = 25_000;
 
 export interface SpyState {
   status: RunStatus;
@@ -27,6 +30,11 @@ export interface SpyState {
   mockRequested: boolean;
   startedAt: number | null;
   finishedAt: number | null;
+  /** Inputs of the current run, so the safety net can re-run them in demo mode. */
+  request: SpyRequest | null;
+  lastEventAt: number | null;
+  /** True while a running stream has been silent for STALL_MS. */
+  stalled: boolean;
 }
 
 const initial: SpyState = {
@@ -42,6 +50,9 @@ const initial: SpyState = {
   mockRequested: false,
   startedAt: null,
   finishedAt: null,
+  request: null,
+  lastEventAt: null,
+  stalled: false,
 };
 
 const upsertBy = <T,>(list: T[], item: T, key: (t: T) => string | number) => {
@@ -52,6 +63,10 @@ const upsertBy = <T,>(list: T[], item: T, key: (t: T) => string | number) => {
   next[i] = item;
   return next;
 };
+
+/** A failed run must not leave spinners behind: unfinished steps become "interrupted" errors. */
+const stopSpinners = (steps: StepEvent[]): StepEvent[] =>
+  steps.map((st) => (st.status === "running" ? { ...st, status: "error", detail: st.detail ?? "interrupted" } : st));
 
 function apply(s: SpyState, ev: RunEvent): SpyState {
   switch (ev.type) {
@@ -87,7 +102,7 @@ function apply(s: SpyState, ev: RunEvent): SpyState {
       };
     }
     case "error":
-      return { ...s, status: "error", error: ev.message, finishedAt: Date.now() };
+      return { ...s, status: "error", error: ev.message, steps: stopSpinners(s.steps), finishedAt: Date.now() };
     default:
       return s;
   }
@@ -101,9 +116,9 @@ export function useSpyRun() {
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
-    setState({ ...initial, status: "running", mockRequested: mock, startedAt: Date.now() });
+    setState({ ...initial, status: "running", mockRequested: mock, startedAt: Date.now(), request: req, lastEventAt: Date.now() });
 
-    const push = (ev: RunEvent) => setState((s) => apply(s, ev));
+    const push = (ev: RunEvent) => setState((s) => ({ ...apply(s, ev), lastEventAt: Date.now(), stalled: false }));
     try {
       const res = await fetch(`/api/spy${mock ? "?mock=1" : ""}`, {
         method: "POST",
@@ -134,17 +149,26 @@ export function useSpyRun() {
       }
       if (buf.trim()) push(JSON.parse(buf) as RunEvent);
       // Stream ended without a done/error event.
-      setState((s) => (s.status === "running" ? { ...s, status: "error", error: "The run ended unexpectedly.", finishedAt: Date.now() } : s));
+      setState((s) => (s.status === "running" ? { ...s, status: "error", error: "The run ended unexpectedly.", steps: stopSpinners(s.steps), finishedAt: Date.now() } : s));
     } catch (e) {
       if (ac.signal.aborted) return;
-      setState((s) => ({ ...s, status: "error", error: e instanceof Error ? e.message : String(e), finishedAt: Date.now() }));
+      setState((s) => ({ ...s, status: "error", error: e instanceof Error ? e.message : String(e), steps: stopSpinners(s.steps), finishedAt: Date.now() }));
     }
   }, []);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
-    setState((s) => (s.status === "running" ? { ...s, status: "error", error: "Stopped.", finishedAt: Date.now() } : s));
+    setState((s) => (s.status === "running" ? { ...s, status: "error", error: "Stopped.", steps: stopSpinners(s.steps), finishedAt: Date.now() } : s));
   }, []);
+
+  // Stall detector: a live run with no event for STALL_MS gets flagged (the stream keeps going).
+  useEffect(() => {
+    if (state.status !== "running") return;
+    const t = setInterval(() => {
+      setState((s) => (s.status === "running" && !s.stalled && s.lastEventAt && Date.now() - s.lastEventAt > STALL_MS ? { ...s, stalled: true } : s));
+    }, 2000);
+    return () => clearInterval(t);
+  }, [state.status]);
 
   return { state, run, stop };
 }
