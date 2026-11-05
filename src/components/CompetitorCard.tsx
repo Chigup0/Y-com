@@ -31,6 +31,10 @@ export function CompetitorCard({
     c.totalFundingUsd ? `${compactUsd(c.totalFundingUsd)} raised` : null,
   ].filter(Boolean);
 
+  // Crustdata often files jobs under a generic "Others"; hide it when real categories exist.
+  const isGeneric = (k: string) => /^others?$/i.test(k.trim()) || !k.trim();
+  const byFunction = hiring.byCategory.some((b) => !isGeneric(b.key)) ? hiring.byCategory.filter((b) => !isGeneric(b.key)) : hiring.byCategory;
+
   const ring = (id: string) => (highlight === id ? `ring-2 ${accent.ring} bg-white/[0.06]` : "");
 
   return (
@@ -63,7 +67,7 @@ export function CompetitorCard({
       {c.description && <p className="mt-3 text-sm text-zinc-400">{c.description}</p>}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <HiringChart title="By function" data={hiring.byCategory} color={accent.fill} />
+        <HiringChart title="By function" data={byFunction} color={accent.fill} />
         <HiringChart title="By country" data={hiring.byCountry} color={accent.fill} />
       </div>
 

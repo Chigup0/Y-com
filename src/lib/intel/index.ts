@@ -104,6 +104,7 @@ function dossierForPrompt(d: CompetitorDossier) {
       url: n.url,
       title: n.title,
       snippet: clip(n.snippet, 300),
+      articleText: clip(n.excerpt, 2500),
       published: n.publishedAt ?? null,
     })),
   };

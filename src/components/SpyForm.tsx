@@ -2,6 +2,7 @@
 // OWNER: Agent B. Input form: you + up to 3 competitors + lookback + demo toggle.
 import { useState } from "react";
 import type { SpyRequest } from "@/lib/types";
+import { CompanyInput } from "./CompanyInput";
 
 const DEMO = { you: "Acme Payments", competitors: ["NovaPay", "Zentra", "PayLoom"] };
 
@@ -20,7 +21,8 @@ export function SpyForm({
   const [mock, setMock] = useState(true);
 
   const filled = competitors.map((c) => c.trim()).filter(Boolean);
-  const canRun = you.trim().length > 0 && filled.length > 0 && !running;
+  // With no competitors the real pipeline auto-picks rivals from Crustdata's competitor data.
+  const canRun = you.trim().length > 0 && !running;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,19 +38,21 @@ export function SpyForm({
       <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">Your company</span>
-          <input className={input} value={you} onChange={(e) => setYou(e.target.value)} placeholder="Name, domain, or LinkedIn URL" />
+          <CompanyInput className={input} value={you} onChange={setYou} placeholder="Name, domain, or LinkedIn URL" />
         </label>
         <div>
-          <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">Competitors (up to 3)</span>
+          <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">
+            Competitors (up to 3) <span className="normal-case tracking-normal text-zinc-500">· leave empty to auto-pick</span>
+          </span>
           <div className="grid gap-2 sm:grid-cols-3">
             {[0, 1, 2].map((i) => (
-              <input
+              <CompanyInput
                 key={i}
                 className={input}
                 value={competitors[i] ?? ""}
-                onChange={(e) => {
+                onChange={(v) => {
                   const next = [...competitors];
-                  next[i] = e.target.value;
+                  next[i] = v;
                   setCompetitors(next);
                 }}
                 placeholder={`Competitor ${i + 1}`}
