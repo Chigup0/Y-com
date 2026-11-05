@@ -18,6 +18,12 @@ const API_LABEL: Record<CrustdataApi, string> = {
   "web.fetch": "Web Fetch",
   "account.credits": "Credits",
   claude: "Claude",
+  rules: "Rules engine",
+};
+
+const API_STYLE: Partial<Record<CrustdataApi, string>> = {
+  claude: "bg-orange-400/10 text-orange-300",
+  rules: "bg-sky-400/10 text-sky-300",
 };
 
 function StatusIcon({ status }: { status: StepEvent["status"] }) {
@@ -83,7 +89,7 @@ export function AgentLog({
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] text-zinc-500">
                 {s.api && (
-                  <span className={`rounded px-1.5 py-px ${s.api === "claude" ? "bg-orange-400/10 text-orange-300" : "bg-white/5 text-zinc-400"}`}>
+                  <span className={`rounded px-1.5 py-px ${API_STYLE[s.api] ?? "bg-white/5 text-zinc-400"}`}>
                     {API_LABEL[s.api] ?? s.api}
                   </span>
                 )}

@@ -76,7 +76,11 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
     and emits a `plan` event. No predictions → no plans (targets are still emitted).
 - [x] M3-B: `extractCustomers`, `draftCounterAttack`, plan + email UI (customer names must appear verbatim on
       the cited page; ≤8 emails, buyers picked round-robin across targets). Not yet run against the live API.
-- [ ] **B, next:** handle the `targets` RunEvent (`useSpyRun` ignores it today) and show each competitor's
+- [x] **Done by A while B was unavailable (commit `[B-by-A]`). B: pull before editing these files:**
+      `useSpyRun.ts` (handles `targets`), new `ProofQuote.tsx`, `CompetitorCard.tsx` ("Their customers" block),
+      `PlanSection.tsx` (quote under "Why now"), `AgentLog.tsx` (`rules` → "Rules engine" label), `page.tsx`
+      (engine badge). `CrustdataApi` gained `"rules"` (additive).
+- [x] ~~B, next: handle the `targets` RunEvent~~ (`useSpyRun` ignores it today) and show each competitor's
       target accounts even when there is no plan, e.g. a "Their customers" block on `CompetitorCard`.
       Show `quote` (the proof sentence, linked to `sourceUrl`), `signal`, `mentions`, headcount, and the buyers.
       Live example: Razorpay vs Cashfree gives Lokal, Zoomies, muun home and HV InfoTech, each with a founder/CXO buyer.
@@ -87,7 +91,7 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       emails. `SpyReport.engine` is `"rules"` or `"claude"`.
       Live, Razorpay vs Cashfree + PayU (~24 credits first run, 0 after): "Cashfree is building out cross-border
       payments" (3 senior cross-border hires, one ex-Fireblocks), "PayU is shipping AI agents" (Agent HQ news + hires).
-- [ ] **B:** show a small "Rules engine" / "Claude" badge from `report.engine` (and the `predict` step label says
+- [x] ~~B: show a small "Rules engine" / "Claude" badge~~ (done, see above) from `report.engine` (and the `predict` step label says
       "(rules engine)"). Don't call it AI-written when `engine === "rules"`.
 - [x] M4-A: demo set cached (Razorpay vs Cashfree, PayU, Juspay, ~25 credits total), demo script in ROADMAP §5,
       cache works on Vercel (`/tmp`, best-effort writes). Fixed: ALL-CAPS names (JUSPAY) now match job-post mentions.

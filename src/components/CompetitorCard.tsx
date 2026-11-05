@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CompetitorDossier } from "@/lib/types";
 import { ACCENTS, compactNum, compactUsd, evidenceDomId, pct, shortDate } from "./format";
 import { HiringChart } from "./HiringChart";
+import { ProofQuote } from "./ProofQuote";
 
 const JOBS_PREVIEW = 6;
 
@@ -182,6 +183,33 @@ export function CompetitorCard({
                 </li>
               );
             })}
+          </ul>
+        </div>
+      )}
+
+      {dossier.targets && dossier.targets.length > 0 && (
+        <div className="mt-5">
+          <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            Their customers <span className="text-zinc-600">({dossier.targets.length}) · pitch these</span>
+          </div>
+          <ul className="space-y-3">
+            {dossier.targets.map((t) => (
+              <li key={t.company.crustdataCompanyId} className="text-sm">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-medium text-zinc-100">{t.company.name}</span>
+                  <span className="text-xs text-zinc-500">
+                    {[t.company.domain, t.company.headcount ? `${t.company.headcount.toLocaleString()} people` : null].filter(Boolean).join(" · ")}
+                  </span>
+                  {t.buyers[0] && (
+                    <span className="text-xs text-zinc-400">
+                      → {t.buyers[0].name}
+                      {t.buyers[0].title ? `, ${t.buyers[0].title}` : ""}
+                    </span>
+                  )}
+                </div>
+                <ProofQuote target={t} />
+              </li>
+            ))}
           </ul>
         </div>
       )}

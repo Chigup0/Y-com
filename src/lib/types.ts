@@ -14,7 +14,9 @@ export type CrustdataApi =
   | "web.search"
   | "web.fetch"
   | "account.credits"
-  | "claude";
+  | "claude"
+  /** Rules-based intel (no LLM), used when ANTHROPIC_API_KEY is unset. */
+  | "rules";
 
 // ---------- Input ----------
 

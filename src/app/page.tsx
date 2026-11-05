@@ -97,6 +97,16 @@ export default function Home() {
                   Demo data
                 </span>
               )}
+              {state.report?.engine && !isMock && (
+                <span
+                  title={state.report.engine === "rules" ? "Predictions and emails come from a transparent rules engine (no LLM key set)." : "Predictions and emails written by Claude."}
+                  className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                    state.report.engine === "rules" ? "border-sky-400/40 bg-sky-400/10 text-sky-300" : "border-orange-400/40 bg-orange-400/10 text-orange-300"
+                  }`}
+                >
+                  {state.report.engine === "rules" ? "Rules engine" : "Claude"}
+                </span>
+              )}
             </div>
             <p className="mt-1 max-w-2xl text-sm text-zinc-400">
               Predict what your competitors launch next from who they&apos;re hiring, then pitch their customers before they ship.

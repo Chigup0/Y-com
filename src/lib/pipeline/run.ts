@@ -18,6 +18,7 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
   const lookback = req.lookbackDays ?? 90;
   // No Anthropic key → rules engine (same output types) instead of Agent B's Claude intel.
   const useClaude = Boolean(process.env.ANTHROPIC_API_KEY);
+  const intelApi: CrustdataApi = useClaude ? "claude" : "rules";
 
   /** Runs one step: emits running → done/error with the credits it spent. Returns null on failure. */
   async function step<T>(
@@ -97,7 +98,7 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
   const [predictions] = await Promise.all([
     (async () => {
       const r =
-        (await step("predict", `Predicting each competitor's next launch${useClaude ? "" : " (rules engine)"}`, "claude", async () => {
+        (await step("predict", "Predicting each competitor's next launch", intelApi, async () => {
           const all = useClaude ? await predictLaunches(you, dossiers) : rulesPredict(you, dossiers);
           return all.filter((p) => knownIds.has(p.competitorId)); // never show fixture predictions on a real run
         }, (r) => `${r.length} predictions`)) ?? [];
@@ -123,7 +124,7 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
     const top = predictions.filter((p) => p.competitorId === d.company.crustdataCompanyId).sort((a, b) => b.confidenceScore - a.confidenceScore)[0];
     if (!top) continue;
     const targets = d.targets ?? [];
-    const plan = await step(`plan:${slug(d.company.name)}`, `Drafting the counter-attack on ${d.company.name}`, "claude", async () => {
+    const plan = await step(`plan:${slug(d.company.name)}`, `Drafting the counter-attack on ${d.company.name}`, intelApi, async () => {
       const { actions, emails } = useClaude ? await draftCounterAttack(you, top, targets) : rulesCounterAttack(you, top, targets);
       return { predictionId: top.id, actions, targets, emails } satisfies CounterAttackPlan;
     }, (p) => `${p.actions.length} actions · ${p.emails.length} emails`);

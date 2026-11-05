@@ -67,6 +67,11 @@ function apply(s: SpyState, ev: RunEvent): SpyState {
       return { ...s, predictions: upsertBy(s.predictions, ev.prediction, (p) => p.id) };
     case "plan":
       return { ...s, plans: upsertBy(s.plans, ev.plan, (p) => p.predictionId) };
+    case "targets":
+      return {
+        ...s,
+        dossiers: s.dossiers.map((d) => (d.company.crustdataCompanyId === ev.competitorId ? { ...d, targets: ev.targets } : d)),
+      };
     case "done": {
       const r = ev.report;
       return {

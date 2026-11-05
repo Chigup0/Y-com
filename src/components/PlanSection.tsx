@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CounterAttackPlan, EmailDraft, LaunchPrediction } from "@/lib/types";
 import { ACCENTS, compactNum } from "./format";
 import { CopyButton } from "./CopyButton";
+import { ProofQuote } from "./ProofQuote";
 
 function EmailCard({ email }: { email: EmailDraft }) {
   const [open, setOpen] = useState(false);
@@ -109,7 +110,10 @@ export function PlanSection({
                         uses {t.competitorName} ↗
                       </a>
                     </td>
-                    <td className="px-3 py-2.5 text-zinc-300">{t.whyNow}</td>
+                    <td className="px-3 py-2.5 text-zinc-300">
+                      {t.whyNow}
+                      <ProofQuote target={t} />
+                    </td>
                     <td className="px-3 py-2.5">
                       {t.buyers.length === 0 && <span className="text-zinc-500">Not found</span>}
                       {t.buyers.map((b) => (
