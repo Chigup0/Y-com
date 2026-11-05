@@ -76,4 +76,8 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
     and emits a `plan` event. No predictions → no plans (targets are still emitted).
 - [x] M3-B: `extractCustomers`, `draftCounterAttack`, plan + email UI (customer names must appear verbatim on
       the cited page; ≤8 emails, buyers picked round-robin across targets). Not yet run against the live API.
-- [ ] M4: end-to-end cached demo, deploy
+- [ ] **B, next:** handle the `targets` RunEvent (`useSpyRun` ignores it today) and show each competitor's
+      target accounts even when there is no plan, e.g. a "Their customers" block on `CompetitorCard`.
+      Show `quote` (the proof sentence, linked to `sourceUrl`), `signal`, `mentions`, headcount, and the buyers.
+      Live example: Razorpay vs Cashfree gives Lokal, Zoomies, muun home and HV InfoTech, each with a founder/CXO buyer.
+- [ ] M4: end-to-end cached demo with `ANTHROPIC_API_KEY` set, deploy
