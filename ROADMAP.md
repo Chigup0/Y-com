@@ -124,7 +124,12 @@ Don't clear `.cache/`. If the Wi-Fi dies, tick **Demo data** (fictional, fully o
 
 ## 5b. Deploying (Vercel)
 
-- Set `CRUSTDATA_API_KEY` (and optionally `ANTHROPIC_API_KEY`) in the Vercel project's environment variables.
+- Import the GitHub repo in Vercel (framework: Next.js, root: repo root, no build settings to change).
+- Environment variables:
+  - `CRUSTDATA_API_KEY`: required for live data (without it the site serves demo data only).
+  - `SPY_ACCESS_CODE`: **set this on any public deploy.** Visitors without the code get demo data, so
+    strangers can't spend your credits. You get live data by opening `https://<app>.vercel.app/?key=<code>`.
+  - `ANTHROPIC_API_KEY`: optional; switches predictions and emails from the rules engine to Claude.
 - On Vercel the cache lives in `/tmp` (per instance, short-lived), so the first runs there spend credits.
   **Demo from localhost** for a guaranteed 0-credit, instant run; use the Vercel URL as the shareable link.
 - `/api/spy` streams for up to ~60 s on a cold run; `maxDuration` is 300 (needs Vercel Pro; Hobby caps at 60 s).

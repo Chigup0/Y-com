@@ -44,13 +44,20 @@ export async function POST(request: Request) {
     competitors: (body.competitors ?? []).map((c) => c.trim()).filter(Boolean).slice(0, 3),
     lookbackDays: Math.min(Math.max(body.lookbackDays ?? 90, 7), 365),
   };
-  const mock = url.searchParams.get("mock") === "1" || isMockEnv();
+  // Public deploys: set SPY_ACCESS_CODE so strangers can't spend Crustdata credits. Without the code → demo data.
+  const required = process.env.SPY_ACCESS_CODE;
+  const supplied = body.accessCode ?? request.headers.get("x-spy-key") ?? url.searchParams.get("key") ?? "";
+  const locked = Boolean(required) && supplied !== required;
+  const mock = url.searchParams.get("mock") === "1" || isMockEnv() || locked;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const emit = (ev: RunEvent) => controller.enqueue(encoder.encode(JSON.stringify(ev) + "\n"));
       try {
+        if (locked && url.searchParams.get("mock") !== "1") {
+          emit({ type: "step", id: "access", label: "Live data needs an access code; showing demo data", status: "done", detail: "add ?key=… to the page URL" });
+        }
         if (mock) await mockRun(req, emit);
         else {
           if (!req.you) throw new Error("Enter your company.");

@@ -27,6 +27,8 @@ export interface SpyRequest {
   competitors: string[];
   /** Window for "recent" jobs and hires. Default 90. */
   lookbackDays?: number;
+  /** Must match SPY_ACCESS_CODE (if the server sets one) for live data; otherwise the demo fixture is served. */
+  accessCode?: string;
 }
 
 // ---------- Entities ----------

@@ -120,8 +120,19 @@ async function fromCaseStudies(competitor: CompanyRef, exclude: Set<string>, met
   const results = (
     await Promise.all(queries.map((query) => crustdata<any>("/web/search/live", { query, sources: ["web"] }, { meter }).then((r) => r.data.results ?? []).catch(() => [])))
   ).flat();
+  // Only the competitor's OWN customer pages. Third-party pages invert the relationship (e.g. an AWS case study
+  // where Cashfree is the customer) or are generic listicles ("Case Study: HubSpot…"). Also saves fetch credits.
+  const own = (u: string) => {
+    if (!competitor.domain) return false;
+    try {
+      const host = new URL(u).hostname.replace(/^www\./, "");
+      return host === competitor.domain || host.endsWith(`.${competitor.domain}`);
+    } catch {
+      return false;
+    }
+  };
   const urls = [...new Set(results.map((r: any) => r.url).filter((u: unknown): u is string => typeof u === "string"))]
-    .filter((u) => /case|customer|success|stor(y|ies)/i.test(u))
+    .filter((u) => own(u) && /case|customer|success|stor(y|ies)/i.test(u))
     .slice(0, 4);
   if (!urls.length) return [];
 
@@ -131,7 +142,17 @@ async function fromCaseStudies(competitor: CompanyRef, exclude: Set<string>, met
     .map((p) => ({ url: p.url as string, title: (p.title as string) ?? null, text: htmlToText(p.content, 8000) }));
   if (!texts.length) return [];
 
-  const mentions = await extractCustomers(competitor, texts);
+  const mentions = (await extractCustomers(competitor, texts)).filter((m) => {
+    // The proof must name the competitor, and the customer must actually appear on the page we cite.
+    const page = texts.find((t) => t.url === m.sourceUrl);
+    return (
+      !!m.quote &&
+      m.quote.toLowerCase().includes(name.toLowerCase()) &&
+      !!page &&
+      page.text.toLowerCase().includes(m.name.toLowerCase()) &&
+      !/cookie|privacy|terms of (use|service)/i.test(m.quote)
+    );
+  });
   const out: Candidate[] = [];
   for (const m of mentions.slice(0, 8)) {
     const ident = m.domain ? { domains: [cleanDomain(m.domain)] } : { names: [m.name] };

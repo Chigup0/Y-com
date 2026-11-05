@@ -99,4 +99,20 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       without a key uses regex extraction (`src/lib/intel/rules.ts`), so case-study pages still yield customers;
       Claude failures fall back to A's `rulesPredict` / `rulesCounterAttack`; "Rules engine" tag on prediction cards;
       fixture NovaPay has a fictional target so the customers block shows in demo mode.
+- [x] A: case-study customers now come **only from the competitor's own website**, and the quote must name the
+      competitor and the customer must appear on that page. Before this, B's regex extractor produced junk on live
+      data: "Your Cookie Rookie" (from an AWS cookie banner, AWS page where Cashfree is the *customer*) and
+      HubSpot/Slack/Salesforce as "PayU customers" (from a generic blog post). Live demo set now: only verified accounts.
+- [x] A: `SPY_ACCESS_CODE` env: when set, `/api/spy` serves demo data unless the request carries the code
+      (`body.accessCode`, header `x-spy-key`, or `?key=` on the API URL). `SpyRequest.accessCode` added (additive).
 - [ ] M4: deploy to Vercel (user's account), final UI polish (B)
+
+## Requests for B
+
+- **useSpyRun:** read `key` from the page URL (`new URLSearchParams(location.search).get("key")`) and send it as
+  `accessCode` in the `/api/spy` request body. Without this, the deployed site with `SPY_ACCESS_CODE` set can only
+  show demo data, even for us.
+
+## Requests for A
+
+- (none yet)
