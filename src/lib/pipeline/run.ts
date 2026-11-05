@@ -1,7 +1,8 @@
 // OWNER: Agent A. Orchestrates the real pipeline and emits RunEvents as it goes.
 import { CreditMeter } from "@/lib/crustdata/client";
-import { predictLaunches } from "@/lib/intel";
-import type { CompanyRef, CompetitorDossier, CrustdataApi, RunEvent, SpyReport, SpyRequest } from "@/lib/types";
+import { draftCounterAttack, predictLaunches } from "@/lib/intel";
+import type { CompanyRef, CompetitorDossier, CounterAttackPlan, CrustdataApi, RunEvent, SpyReport, SpyRequest } from "@/lib/types";
+import { findTargets } from "./customers";
 import { collectHires, enrichKeyHires } from "./hires";
 import { collectJobs } from "./jobs";
 import { collectNews } from "./news";
@@ -66,7 +67,7 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
           return `${r.hiring.totalOpenings} postings${abroad ? ` · ${abroad}` : ""}`;
         }),
         step(`hires:${s}`, `Finding people who joined ${company.name} recently`, "person.search", (m) => collectHires(company, lookback, m), (r) => `${r.total} new joiners`),
-        step(`news:${s}`, `Scanning news about ${company.name}`, "web.search", (m) => collectNews(company, lookback, m), (r) => `${r.length} articles · ${r.filter((n) => n.excerpt).length} read in full`),
+        step(`news:${s}`, `Scanning news about ${company.name}`, "web.search", (m) => collectNews(company, lookback, m, 2), (r) => `${r.length} articles · ${r.filter((n) => n.excerpt).length} read in full`),
       ]);
       const hires = hiresRes?.hires ?? [];
       await step(`enrich:${s}`, `Deep-profiling key hires at ${company.name}`, "person.enrich", (m) => enrichKeyHires(hires, company.crustdataCompanyId, m), (n) => `${n} profiles enriched`);
@@ -84,23 +85,57 @@ export async function runSpy(req: SpyRequest, emit: Emit): Promise<SpyReport> {
     }),
   );
 
-  // ---- 5. Predict (Agent B) ----
+  // ---- 5 + 6a in parallel: predict (Agent B) and find each competitor's customers (Agent A) ----
   const knownIds = new Set(dossiers.map((d) => d.company.crustdataCompanyId));
-  const predictions =
-    (await step("predict", "Predicting each competitor's next launch", "claude", async () => {
-      const all = await predictLaunches(you, dossiers);
-      return all.filter((p) => knownIds.has(p.competitorId)); // drops fixture output from the stub
-    }, (r) => `${r.length} predictions`)) ?? [];
-  for (const p of predictions) emit({ type: "prediction", prediction: p });
+  const exclude = new Set(
+    [you.domain, ...rivals.map((r) => r.domain), ...(you.knownCompetitors ?? [])].filter((d): d is string => !!d),
+  );
 
-  // ---- 6. Counter-attack: M3 ----
+  const [predictions] = await Promise.all([
+    (async () => {
+      const r =
+        (await step("predict", "Predicting each competitor's next launch", "claude", async () => {
+          const all = await predictLaunches(you, dossiers);
+          return all.filter((p) => knownIds.has(p.competitorId)); // drops fixture output from the stub
+        }, (r) => `${r.length} predictions`)) ?? [];
+      for (const p of r) emit({ type: "prediction", prediction: p });
+      return r;
+    })(),
+    Promise.all(
+      dossiers.map(async (d) => {
+        const targets =
+          (await step(`customers:${slug(d.company.name)}`, `Finding ${d.company.name}'s customers and their buyers`, "job.search", (m) => findTargets(you, d.company, exclude, m), (t) => {
+            const buyers = t.reduce((n, x) => n + x.buyers.length, 0);
+            return `${t.length} accounts · ${buyers} buyers`;
+          })) ?? [];
+        d.targets = targets;
+        emit({ type: "targets", competitorId: d.company.crustdataCompanyId, targets });
+      }),
+    ),
+  ]);
+
+  // ---- 6b. Counter-attack plan per competitor's top prediction (Agent B writes actions + emails) ----
+  const plans: CounterAttackPlan[] = [];
+  for (const d of dossiers) {
+    const top = predictions.filter((p) => p.competitorId === d.company.crustdataCompanyId).sort((a, b) => b.confidenceScore - a.confidenceScore)[0];
+    if (!top) continue;
+    const targets = d.targets ?? [];
+    const plan = await step(`plan:${slug(d.company.name)}`, `Drafting the counter-attack on ${d.company.name}`, "claude", async () => {
+      const { actions, emails } = await draftCounterAttack(you, top, targets);
+      return { predictionId: top.id, actions, targets, emails } satisfies CounterAttackPlan;
+    }, (p) => `${p.actions.length} actions · ${p.emails.length} emails`);
+    if (plan) {
+      plans.push(plan);
+      emit({ type: "plan", plan });
+    }
+  }
 
   return {
     request: req,
     you,
     competitors: dossiers,
     predictions,
-    plans: [],
+    plans,
     generatedAt: new Date().toISOString(),
     creditsUsed: total.total,
     mock: false,

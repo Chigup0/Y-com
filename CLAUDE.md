@@ -63,8 +63,17 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
 - [x] M1-B: UI on fixture: input form, live agent log, competitor cards, hiring charts
 - [x] M2-B: `predictLaunches` with Claude (one call per competitor in parallel; evidence refs validated
       against the dossier, predictions with <2 valid refs dropped; falls back to fixture without `ANTHROPIC_API_KEY`)
-- [ ] M2-A: wire predictions into the route
-- [ ] M3-A: customer discovery + buyers
+- [x] M2-A: predictions wired into the route (runs in parallel with customer discovery)
+- [x] M3-A: customer discovery + buyers (`src/lib/pipeline/customers.ts`). Tested live, Razorpay vs Cashfree:
+  4 verified accounts (e.g. Lokal: "Own routing logic across payment gateways (Razorpay, PayU, Cashfree…)"),
+  7 founder/CXO buyers, ~4 credits.
+  - Signal 1 `job_mention`: companies whose own job posts name the competitor in a vendor/payments context
+    (case-sensitive, talent wish-lists filtered out). Signal 2 `case_study`: Web Search + Web Fetch of customer
+    pages → **B's `extractCustomers`** → Company Identify.
+  - New `RunEvent` `{type:"targets", competitorId, targets}` and `CompetitorDossier.targets`; `TargetAccount`
+    now has optional `signal`, `quote`, `mentions`. Show the quote in the UI: it's the proof.
+  - Plans: for each competitor's top prediction the route calls **B's `draftCounterAttack(you, prediction, targets)`**
+    and emits a `plan` event. No predictions → no plans (targets are still emitted).
 - [x] M3-B: `extractCustomers`, `draftCounterAttack`, plan + email UI (customer names must appear verbatim on
       the cited page; ≤8 emails, buyers picked round-robin across targets). Not yet run against the live API.
 - [ ] M4: end-to-end cached demo, deploy

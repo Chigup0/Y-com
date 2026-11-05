@@ -104,6 +104,8 @@ export interface CompetitorDossier {
   recentHires: Hire[];
   news: NewsItem[];
   creditsUsed: number;
+  /** Competitor's customers to pitch (filled after the dossier; also sent as a `targets` event). */
+  targets?: TargetAccount[];
 }
 
 // ---------- Intelligence (Agent B produces these) ----------
@@ -158,6 +160,12 @@ export interface TargetAccount {
   sourceUrl: string;
   whyNow: string;
   buyers: Buyer[];
+  /** How we found them: their own job posts mention the competitor, or a web case study / customer page. */
+  signal?: "job_mention" | "case_study";
+  /** Verbatim sentence proving the relationship, e.g. "…integrate payment gateways such as Cashfree…". */
+  quote?: string | null;
+  /** Job posts (job_mention) or pages (case_study) backing this target. */
+  mentions?: number;
 }
 
 export interface EmailDraft {
@@ -206,6 +214,7 @@ export type RunEvent =
   | { type: "company"; role: "you" | "competitor"; company: CompanyRef }
   | { type: "dossier"; dossier: CompetitorDossier }
   | { type: "prediction"; prediction: LaunchPrediction }
+  | { type: "targets"; competitorId: number; targets: TargetAccount[] }
   | { type: "plan"; plan: CounterAttackPlan }
   | { type: "done"; report: SpyReport }
   | { type: "error"; message: string };
