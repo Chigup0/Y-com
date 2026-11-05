@@ -1,6 +1,8 @@
 // OWNER: Agent A. POST /api/spy → NDJSON stream of RunEvent (see src/lib/types.ts).
-// M0: mock mode only. Real pipeline lands in M1 (src/lib/pipeline).
+// Real pipeline by default; mock (fictional fixture, 0 credits) with ?mock=1, CRUSTDATA_MOCK=1, or no API key.
 import { demoReport } from "@/fixtures/demo-report";
+import { isMockEnv } from "@/lib/crustdata/client";
+import { runSpy } from "@/lib/pipeline/run";
 import type { CrustdataApi, RunEvent, SpyRequest } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -8,53 +10,55 @@ export const maxDuration = 300;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function* mockRun(req: SpyRequest): AsyncGenerator<RunEvent> {
+async function mockRun(req: SpyRequest, emit: (ev: RunEvent) => void) {
   const r = demoReport;
-  const step = async function* (id: string, label: string, api: CrustdataApi, detail: string) {
-    yield { type: "step", id, label, status: "running", api } as RunEvent;
+  const step = async (id: string, label: string, api: CrustdataApi, detail: string) => {
+    emit({ type: "step", id, label, status: "running", api });
     await sleep(350);
-    yield { type: "step", id, label, status: "done", api, detail, credits: 0 } as RunEvent;
+    emit({ type: "step", id, label, status: "done", api, detail, credits: 0 });
   };
 
-  yield* step("resolve", `Resolving ${[req.you, ...req.competitors].join(", ")}`, "company.identify", "4 companies matched");
-  yield { type: "company", role: "you", company: r.you };
+  await step("resolve", `Identifying ${[r.you.name, ...r.competitors.map((c) => c.company.name)].join(", ")}`, "company.identify", "4 companies matched");
+  emit({ type: "company", role: "you", company: r.you });
   for (const d of r.competitors) {
-    yield { type: "company", role: "competitor", company: d.company };
-    const slug = d.company.name.toLowerCase();
-    yield* step(`jobs:${slug}`, `Pulling 90 days of job postings for ${d.company.name}`, "job.search", `${d.hiring.totalOpenings} postings`);
-    yield* step(`hires:${slug}`, `Finding people who just joined ${d.company.name}`, "person.search", `${d.recentHires.length} recent hires`);
-    yield* step(`enrich:${slug}`, `Enriching key hires at ${d.company.name}`, "person.enrich", `${d.recentHires.filter((h) => h.enriched).length} profiles`);
-    yield* step(`news:${slug}`, `Scanning news for ${d.company.name}`, "web.search", `${d.news.length} articles`);
-    yield { type: "dossier", dossier: d };
+    emit({ type: "company", role: "competitor", company: d.company });
+    const s = d.company.name.toLowerCase();
+    await step(`jobs:${s}`, `Pulling 90 days of job postings for ${d.company.name}`, "job.search", `${d.hiring.totalOpenings} postings`);
+    await step(`hires:${s}`, `Finding people who joined ${d.company.name} recently`, "person.search", `${d.recentHires.length} new joiners`);
+    await step(`news:${s}`, `Scanning news about ${d.company.name}`, "web.search", `${d.news.length} articles`);
+    await step(`enrich:${s}`, `Deep-profiling key hires at ${d.company.name}`, "person.enrich", `${d.recentHires.filter((h) => h.enriched).length} profiles enriched`);
+    emit({ type: "dossier", dossier: d });
   }
-  yield* step("predict", "Predicting next launches", "claude", `${r.predictions.length} predictions`);
-  for (const p of r.predictions) yield { type: "prediction", prediction: p };
-  yield* step("counter", "Building counter-attack plans", "claude", `${r.plans.length} plans`);
-  for (const p of r.plans) yield { type: "plan", plan: p };
-  yield { type: "done", report: { ...r, request: req } };
+  await step("predict", "Predicting each competitor's next launch", "claude", `${r.predictions.length} predictions`);
+  for (const p of r.predictions) emit({ type: "prediction", prediction: p });
+  await step("counter", "Building counter-attack plans", "claude", `${r.plans.length} plans`);
+  for (const p of r.plans) emit({ type: "plan", plan: p });
+  emit({ type: "done", report: { ...r, request: req } });
 }
 
 export async function POST(request: Request) {
   const url = new URL(request.url);
   const body = (await request.json().catch(() => ({}))) as Partial<SpyRequest>;
   const req: SpyRequest = {
-    you: body.you?.trim() || "Acme Payments",
+    you: body.you?.trim() || "",
     competitors: (body.competitors ?? []).map((c) => c.trim()).filter(Boolean).slice(0, 3),
-    lookbackDays: body.lookbackDays ?? 90,
+    lookbackDays: Math.min(Math.max(body.lookbackDays ?? 90, 7), 365),
   };
-  // TODO(A, M1): when not mock, run the real pipeline. Until then everything streams the fixture.
-  const mock = url.searchParams.get("mock") === "1" || process.env.CRUSTDATA_MOCK === "1";
-  void mock;
+  const mock = url.searchParams.get("mock") === "1" || isMockEnv();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      const emit = (ev: RunEvent) => controller.enqueue(encoder.encode(JSON.stringify(ev) + "\n"));
       try {
-        const gen = mockRun(req);
-        for await (const ev of gen) controller.enqueue(encoder.encode(JSON.stringify(ev) + "\n"));
+        if (mock) await mockRun(req, emit);
+        else {
+          if (!req.you) throw new Error("Enter your company.");
+          const report = await runSpy(req, emit);
+          emit({ type: "done", report });
+        }
       } catch (e) {
-        const ev: RunEvent = { type: "error", message: e instanceof Error ? e.message : String(e) };
-        controller.enqueue(encoder.encode(JSON.stringify(ev) + "\n"));
+        emit({ type: "error", message: e instanceof Error ? e.message : String(e) });
       } finally {
         controller.close();
       }

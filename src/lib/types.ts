@@ -41,6 +41,8 @@ export interface CompanyRef {
   industries?: string[];
   hq?: string | null;
   totalFundingUsd?: number | null;
+  /** Competitor names/websites from Company Enrichment; used to suggest rivals. */
+  knownCompetitors?: string[];
 }
 
 export interface Bucket {
@@ -91,6 +93,8 @@ export interface NewsItem {
   snippet: string | null;
   source: "web" | "news" | "social";
   publishedAt?: string | null;
+  /** Readable text of the article (Web Fetch), up to ~2,500 chars. Only on the top item(s). */
+  excerpt?: string | null;
 }
 
 export interface CompetitorDossier {
