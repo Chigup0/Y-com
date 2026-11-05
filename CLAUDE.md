@@ -89,4 +89,6 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       payments" (3 senior cross-border hires, one ex-Fireblocks), "PayU is shipping AI agents" (Agent HQ news + hires).
 - [ ] **B:** show a small "Rules engine" / "Claude" badge from `report.engine` (and the `predict` step label says
       "(rules engine)"). Don't call it AI-written when `engine === "rules"`.
-- [ ] M4: end-to-end cached demo (Razorpay vs Cashfree, PayU, + one more), deploy
+- [x] M4-A: demo set cached (Razorpay vs Cashfree, PayU, Juspay, ~25 credits total), demo script in ROADMAP §5,
+      cache works on Vercel (`/tmp`, best-effort writes). Fixed: ALL-CAPS names (JUSPAY) now match job-post mentions.
+- [ ] M4: deploy to Vercel (user's account), final UI polish (B)

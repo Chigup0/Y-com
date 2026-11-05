@@ -92,7 +92,7 @@ const THEMES: Theme[] = [
     id: "ai",
     area: "AI & automation",
     headline: (c) => `${c} is shipping AI agents for payments`,
-    pattern: /(\bai\b|\bagents?\b|\bllm|genai|generative|machine learning|\bml\b|automation)/i,
+    pattern: /(\bai\b|\bagentic\b|\bai agents?\b|\bllms?\b|genai|generative|machine learning|\bml engineer)/i,
     what: "AI agents that automate payments and operations",
     threat: (y, c) => `AI-led ops automation is a sticky differentiator for SMBs; ${c} will use it to poach ${y}'s self-serve merchants.`,
     actions: (y) => [

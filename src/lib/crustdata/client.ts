@@ -6,7 +6,10 @@ import path from "node:path";
 
 const BASE_URL = "https://api.crustdata.com";
 const API_VERSION = "2025-11-01";
-const CACHE_DIR = path.join(process.cwd(), ".cache", "crustdata");
+// Serverless hosts (Vercel, AWS Lambda) only allow writes under /tmp, which is per-instance and short-lived.
+// Locally the cache lives in the repo's .cache/ so demo runs stay free across restarts.
+const SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const CACHE_DIR = process.env.CRUSTDATA_CACHE_DIR || (SERVERLESS ? path.join("/tmp", "crustdata-cache") : path.join(process.cwd(), ".cache", "crustdata"));
 
 /** Requests per minute per path (docs.crustdata.com/general/rate-limits). */
 const RPM: Record<string, number> = {
@@ -110,8 +113,13 @@ export async function crustdata<T = any>(
 
     if (res.ok) {
       if (!opts.noCache) {
-        await mkdir(CACHE_DIR, { recursive: true });
-        await writeFile(cacheFile, JSON.stringify(data));
+        // Best-effort: a read-only filesystem must never break a successful API call.
+        try {
+          await mkdir(CACHE_DIR, { recursive: true });
+          await writeFile(cacheFile, JSON.stringify(data));
+        } catch {
+          /* ignore */
+        }
       }
       return { data: data as T, credits, cached: false };
     }

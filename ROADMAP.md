@@ -100,13 +100,34 @@ the demo costs 0. Mock mode (`CRUSTDATA_MOCK=1`) costs 0 and needs no key.
 | M3 | Counter-attack | Customer discovery + buyers (A); action plan + email drafts + copy buttons (B) |
 | M4 | Demo-ready | Razorpay vs Cashfree / PayU / Juspay cached end to end, error states, deploy to Vercel, 2-min demo script |
 
-## 5. Demo script (2 minutes)
+## 5. Demo script (2 minutes), real data, cached
 
-1. "Consultants charge $50K to tell you what a rival is building. We do it in 60 seconds from public hiring data."
-2. Type Razorpay + 3 rivals → the live agent log shows each Crustdata call ticking through.
-3. Hiring charts: "Cashfree opened 14 compliance roles in the UAE this quarter."
-4. Prediction card: headline, confidence, the exact jobs and hires as evidence (clickable).
-5. Counter-attack: 5 named customer accounts, the buyer at each, a ready-to-send email. Copy → done.
+**Before going on stage:** run `Razorpay` vs `Cashfree`, `PayU`, `Juspay` once with **Demo data unticked**.
+Everything is then cached in `.cache/crustdata/`, so the live run is fast and costs 0 credits.
+Don't clear `.cache/`. If the Wi-Fi dies, tick **Demo data** (fictional, fully offline).
+
+| Time | Do | Say |
+|---|---|---|
+| 0:00 | Landing page | "Strategy firms charge $50K to tell you what a rival is building next. Every launch starts with hiring, 3–6 months before, and that hiring is public. We read it." |
+| 0:15 | Type **Razorpay**; competitors **Cashfree, PayU, Juspay**; untick Demo data; **Run the spy** | "I'm Razorpay. These are my three biggest rivals." |
+| 0:20 | Point at the agent log as it ticks | "It's an agent chaining 10 Crustdata APIs: Company Identify and Enrichment, Job Search, People Search, Person Enrichment, Web Search and Web Fetch, Company Search, Autocomplete. You can see the credits per step." |
+| 0:40 | Top prediction: **Cashfree is building out cross-border payments** | "Cashfree just hired a Senior Director of Cross-Border Payments who came from Fireblocks, a crypto custody firm, plus an Associate Director and a Manager for cross-border, all in 60 days. Every claim links to the actual hire. Bonus: 5 of their recent hires came from Razorpay." |
+| 1:00 | Scroll to PayU and Juspay | "PayU and Juspay are both going after AI agents for merchants: the news plus their hiring agree." |
+| 1:15 | **Counter-attack on Cashfree** | "Knowing is half of it. Who do we call? These companies' *own job posts* say they run on Cashfree. Lokal, 1,260 people: 'Own routing logic across payment gateways (Razorpay, PayU, Cashfree…)'. Here's their CEO and CTO." |
+| 1:35 | Open an email, hit **Copy** | "And a ready-to-send email, pitched at the exact launch Cashfree is about to make." |
+| 1:50 | Close | "Any company, any market, under a minute, about 25 credits. Secret Product Spy." |
+
+**Likely questions:**
+- *Isn't this just guessing?* Every prediction shows its evidence (job posts, hires, articles) and is dropped if it has fewer than 2 pieces. Confidence goes up with senior hires whose title matches the theme.
+- *Without an LLM?* Tonight it runs on a transparent rules engine; set `ANTHROPIC_API_KEY` and Claude writes the predictions and emails instead (same UI).
+- *How do you know they're customers?* Their own job ads name the competitor in a payments context (gateway, integration, settlement), checked case-sensitively; mentions like "candidates from Cashfree" are filtered out.
+
+## 5b. Deploying (Vercel)
+
+- Set `CRUSTDATA_API_KEY` (and optionally `ANTHROPIC_API_KEY`) in the Vercel project's environment variables.
+- On Vercel the cache lives in `/tmp` (per instance, short-lived), so the first runs there spend credits.
+  **Demo from localhost** for a guaranteed 0-credit, instant run; use the Vercel URL as the shareable link.
+- `/api/spy` streams for up to ~60 s on a cold run; `maxDuration` is 300 (needs Vercel Pro; Hobby caps at 60 s).
 
 ## 6. Stretch (only after M4)
 

@@ -32,7 +32,9 @@ const TALENT_CONTEXT = /(background|experience (at|with companies)|worked at|ex-
 function usageQuote(text: string | undefined, brand: string, span = 140): string | null {
   if (!text) return null;
   const flat = text.replace(/\s+/g, " ");
-  const re = new RegExp(`\\b${brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "g");
+  // Case-sensitive on purpose ("cashFree" in "pay you cash Free" is not Cashfree), but accept the ALL-CAPS form too.
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`\\b(?:${esc(brand)}|${esc(brand.toUpperCase())})\\b`, "g");
   for (const m of flat.matchAll(re)) {
     const i = m.index ?? 0;
     const near = flat.slice(Math.max(0, i - 150), i + brand.length + 150);
@@ -47,7 +49,9 @@ function usageQuote(text: string | undefined, brand: string, span = 140): string
 function brand(company: CompanyRef) {
   const fromDomain = company.domain?.split(".")[0];
   const first = company.name.split(/\s+/)[0];
-  return first.length >= 4 ? first : fromDomain ?? company.name;
+  const b = first.length >= 4 ? first : fromDomain ?? company.name;
+  // "JUSPAY" → "Juspay": job posts use title case; short acronyms (e.g. "PayU", "CRED") are kept as-is.
+  return b.length > 4 && b === b.toUpperCase() ? b[0] + b.slice(1).toLowerCase() : b;
 }
 
 interface Candidate {
