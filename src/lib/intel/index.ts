@@ -1,6 +1,8 @@
 // OWNER: Agent B. Claude-powered intelligence.
 // Signatures are the integration contract with Agent A's route. Keep them stable.
-// Without ANTHROPIC_API_KEY these fall back to fixture data so the demo still runs end to end.
+// Without ANTHROPIC_API_KEY, or when a Claude call fails, they fall back to rules: Agent A's engine in
+// src/lib/pipeline/rules-intel.ts for predictions and plans, ./rules for customer extraction.
+// The curated fixture output is only used for the fictional demo companies.
 import type {
   CompanyRef,
   CompetitorDossier,
@@ -11,8 +13,10 @@ import type {
   LaunchPrediction,
   TargetAccount,
 } from "@/lib/types";
-import { demoPlans, demoPredictions } from "@/fixtures/demo-report";
+import { demoPlans, demoPredictions, demoReport } from "@/fixtures/demo-report";
 import { callJson, hasAnthropicKey } from "./claude";
+import { rulesCounterAttack, rulesPredict } from "@/lib/pipeline/rules-intel";
+import { ruleCustomers } from "./rules";
 import {
   COUNTER_SYSTEM,
   CUSTOMERS_SYSTEM,
@@ -23,6 +27,9 @@ import {
 } from "./prompts";
 
 // ---------- helpers ----------
+
+const FIXTURE_IDS = new Set(demoReport.competitors.map((d) => d.company.crustdataCompanyId));
+const isFixtureCompany = (id: number) => FIXTURE_IDS.has(id);
 
 const slugify = (s: string) =>
   s
@@ -196,20 +203,26 @@ async function predictForCompetitor(you: CompanyRef, d: CompetitorDossier): Prom
  * Target: 1–2 predictions per competitor, sorted by confidenceScore desc.
  */
 export async function predictLaunches(you: CompanyRef, dossiers: CompetitorDossier[]): Promise<LaunchPrediction[]> {
-  if (!hasAnthropicKey()) {
-    const ids = new Set(dossiers.map((d) => d.company.crustdataCompanyId));
-    return demoPredictions.filter((p) => ids.has(p.competitorId));
-  }
+  const useClaude = hasAnthropicKey();
 
-  // One call per competitor, in parallel: faster, and one bad dossier can't sink the rest.
-  const settled = await Promise.allSettled(dossiers.map((d) => predictForCompetitor(you, d)));
-  const failures = settled.filter((s): s is PromiseRejectedResult => s.status === "rejected");
-  if (failures.length === settled.length && settled.length > 0) throw failures[0].reason;
-  for (const f of failures) console.error("[intel] predictLaunches failed for one competitor:", f.reason);
+  // One unit of work per competitor, in parallel: one bad dossier can't sink the rest.
+  const perCompetitor = await Promise.all(
+    dossiers.map(async (d): Promise<LaunchPrediction[]> => {
+      if (!useClaude) {
+        if (isFixtureCompany(d.company.crustdataCompanyId))
+          return demoPredictions.filter((p) => p.competitorId === d.company.crustdataCompanyId);
+        return rulesPredict(you, [d]);
+      }
+      try {
+        return await predictForCompetitor(you, d);
+      } catch (e) {
+        console.error(`[intel] Claude prediction failed for ${d.company.name}; using rules:`, e);
+        return rulesPredict(you, [d]);
+      }
+    }),
+  );
 
-  return settled
-    .flatMap((s) => (s.status === "fulfilled" ? s.value : []))
-    .sort((a, b) => b.confidenceScore - a.confidenceScore);
+  return perCompetitor.flat().sort((a, b) => b.confidenceScore - a.confidenceScore);
 }
 
 // ---------- Step 6a: extract customers ----------
@@ -226,8 +239,20 @@ export async function extractCustomers(
   pages: { url: string; title: string | null; text: string }[],
 ): Promise<CustomerMention[]> {
   const usable = pages.filter((p) => p.text && p.text.trim().length > 50);
-  if (usable.length === 0 || !hasAnthropicKey()) return [];
+  if (usable.length === 0) return [];
+  if (!hasAnthropicKey()) return ruleCustomers(competitor, usable);
+  try {
+    return await claudeCustomers(competitor, usable);
+  } catch (e) {
+    console.error(`[intel] Claude customer extraction failed for ${competitor.name}; using rules:`, e);
+    return ruleCustomers(competitor, usable);
+  }
+}
 
+async function claudeCustomers(
+  competitor: CompanyRef,
+  usable: { url: string; title: string | null; text: string }[],
+): Promise<CustomerMention[]> {
   const docs = usable
     .map(
       (p, i) =>
@@ -283,9 +308,22 @@ export async function draftCounterAttack(
 ): Promise<Pick<CounterAttackPlan, "actions" | "emails">> {
   if (!hasAnthropicKey()) {
     const plan = demoPlans.find((p) => p.predictionId === prediction.id);
-    return { actions: plan?.actions ?? [], emails: plan?.emails ?? [] };
+    if (plan && isFixtureCompany(prediction.competitorId)) return { actions: plan.actions, emails: plan.emails };
+    return rulesCounterAttack(you, prediction, targets);
   }
+  try {
+    return await claudeCounterAttack(you, prediction, targets);
+  } catch (e) {
+    console.error(`[intel] Claude counter-attack failed for ${prediction.id}; using rules:`, e);
+    return rulesCounterAttack(you, prediction, targets);
+  }
+}
 
+async function claudeCounterAttack(
+  you: CompanyRef,
+  prediction: LaunchPrediction,
+  targets: TargetAccount[],
+): Promise<Pick<CounterAttackPlan, "actions" | "emails">> {
   // Pick buyers round-robin across targets so one big account doesn't take every email slot.
   const picks: { buyer: TargetAccount["buyers"][number]; target: TargetAccount }[] = [];
   for (let round = 0; picks.length < MAX_EMAILS; round++) {

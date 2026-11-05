@@ -16,12 +16,14 @@ export function PredictionCard({
   prediction: p,
   accentIndex,
   hasPlan,
+  engine,
   onEvidence,
   onPlan,
 }: {
   prediction: LaunchPrediction;
   accentIndex: number;
   hasPlan: boolean;
+  engine: "claude" | "rules" | null;
   onEvidence: (e: Evidence, competitorId: number) => void;
   onPlan: () => void;
 }) {
@@ -36,6 +38,11 @@ export function PredictionCard({
         <span className="text-zinc-600">·</span>
         <span className="rounded-full border border-white/10 px-2 py-0.5 text-zinc-300">{p.area}</span>
         <span className="rounded-full border border-white/10 px-2 py-0.5 text-zinc-300">⏱ {p.expectedWindow}</span>
+        {engine === "rules" && (
+          <span title="Scored by keyword rules over the hiring data, without an AI model" className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-sky-300">
+            Rules engine
+          </span>
+        )}
         <span className={`ml-auto rounded-full border px-2 py-0.5 font-medium uppercase tracking-wide ${CONF_STYLE[p.confidence]}`}>
           {p.confidence} confidence
         </span>

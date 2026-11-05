@@ -95,4 +95,8 @@ then this file (who owns what). The shared contract is `src/lib/types.ts`.
       "(rules engine)"). Don't call it AI-written when `engine === "rules"`.
 - [x] M4-A: demo set cached (Razorpay vs Cashfree, PayU, Juspay, ~25 credits total), demo script in ROADMAP §5,
       cache works on Vercel (`/tmp`, best-effort writes). Fixed: ALL-CAPS names (JUSPAY) now match job-post mentions.
+- [x] B (after A's [B-by-A] UI): kept A's ProofQuote / targets block / engine labels. Added: `extractCustomers`
+      without a key uses regex extraction (`src/lib/intel/rules.ts`), so case-study pages still yield customers;
+      Claude failures fall back to A's `rulesPredict` / `rulesCounterAttack`; "Rules engine" tag on prediction cards;
+      fixture NovaPay has a fictional target so the customers block shows in demo mode.
 - [ ] M4: deploy to Vercel (user's account), final UI polish (B)

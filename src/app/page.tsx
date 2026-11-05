@@ -33,7 +33,7 @@ function Skeleton({ lines = 3 }: { lines?: number }) {
 
 const HOW = [
   { n: "01", t: "Read their hiring", d: "Job Search and People Search pull every role they opened and everyone who just joined." },
-  { n: "02", t: "Predict the launch", d: "Claude clusters the signals into concrete launch predictions, each backed by real jobs and hires." },
+  { n: "02", t: "Predict the launch", d: "Claude, or a free rules engine, clusters the signals into concrete launch predictions, each backed by real jobs and hires." },
   { n: "03", t: "Strike first", d: "Find their customers, the buyer at each, and get ready-to-send emails." },
 ];
 
@@ -42,6 +42,7 @@ export default function Home() {
   const [highlight, setHighlight] = useState<string | null>(null);
 
   const running = state.status === "running";
+  const engine = state.report?.engine ?? (state.steps.some((st) => st.api === "rules") ? "rules" : null);
   const isMock = state.report ? state.report.mock : state.mockRequested;
 
   const accentById = useMemo(() => {
@@ -113,7 +114,7 @@ export default function Home() {
             </p>
           </div>
           <div className="text-xs text-zinc-500">
-            Powered by <span className="text-zinc-300">Crustdata</span> + <span className="text-zinc-300">Claude</span>
+            Powered by <span className="text-zinc-300">Crustdata</span>{engine !== "rules" && (<> + <span className="text-zinc-300">Claude</span></>)}
           </div>
         </header>
 
@@ -180,6 +181,7 @@ export default function Home() {
                       prediction={p}
                       accentIndex={accentOf(p.competitorId)}
                       hasPlan={planIds.has(p.id)}
+                      engine={engine}
                       onEvidence={onEvidence}
                       onPlan={() => scrollTo(`plan-${p.id}`)}
                     />

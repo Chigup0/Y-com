@@ -185,6 +185,9 @@ export const demoPlans: CounterAttackPlan[] = [
         competitorName: "NovaPay",
         sourceUrl: "https://novapay.example/customers/saffron-travels",
         whyNow: "Featured NovaPay payouts customer with heavy Gulf customer base.",
+        signal: "case_study",
+        quote: "Saffron Travels uses NovaPay payouts to settle with 2,000 agents across the Gulf every week.",
+        mentions: 1,
         buyers: [{ personId: 8900001, name: "Neha Joshi", title: "VP Finance", profileUrl: null }],
       },
     ],
@@ -198,6 +201,11 @@ export const demoPlans: CounterAttackPlan[] = [
     ],
   },
 ];
+
+// Customers to pitch, shown on the competitor card (mirrors the `targets` event in real runs).
+novapay.targets = demoPlans[0].targets;
+zentra.targets = [];
+payloom.targets = [];
 
 export const demoReport: SpyReport = {
   request: { you: "Acme Payments", competitors: ["NovaPay", "Zentra", "PayLoom"], lookbackDays: 90 },
